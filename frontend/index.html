@@ -50,6 +50,7 @@ html,body{height:100%;background:var(--bg);color:var(--hi);font-family:var(--san
 .pt{font-family:var(--mono);font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--mid-t)}
 .ptag{font-family:var(--mono);font-size:10px;color:var(--lo)}
 canvas{width:100%!important}
+#flux-chart{display:block;height:250px!important;max-height:250px!important}
 .predict-panel{display:flex;flex-direction:column;gap:14px}
 .field{display:flex;flex-direction:column;gap:6px}
 .field label{font-family:var(--mono);font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--lo)}
@@ -136,7 +137,7 @@ pre{font-family:var(--mono);font-size:10px;color:var(--lo);background:var(--bg);
   <div class="mid-row">
     <div class="panel">
       <div class="ph"><span class="pt">X-Ray Flux — History</span><span class="ptag">last 20 readings</span></div>
-      <canvas id="flux-chart" height="220"></canvas>
+      <canvas id="flux-chart" height="250"></canvas>
     </div>
     <div class="panel predict-panel">
       <div class="ph"><span class="pt">Manual Predict</span></div>
