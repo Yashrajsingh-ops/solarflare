@@ -51,6 +51,16 @@ app.include_router(upload.router)
 app.include_router(prediction.router)
 app.include_router(dashboard.router)
 
+app.add_api_route("/upload", upload.upload_dataset, methods=["POST"], include_in_schema=False)
+app.add_api_route("/predict", prediction.predict_flare, methods=["POST"], include_in_schema=False)
+app.add_api_route("/dashboard", dashboard.dashboard, methods=["GET"], include_in_schema=False)
+app.add_api_route("/alerts", dashboard.alerts, methods=["GET"], include_in_schema=False)
+app.add_api_route("/history", dashboard.history, methods=["GET"], include_in_schema=False)
+app.add_api_route("/flare-events", dashboard.flare_events, methods=["GET"], include_in_schema=False)
+app.add_api_route("/analytics", dashboard.analytics, methods=["GET"], include_in_schema=False)
+app.add_api_route("/alerts/history", dashboard.alert_history, methods=["GET"], include_in_schema=False)
+app.add_api_route("/explain", dashboard.explain, methods=["GET"], include_in_schema=False)
+
 
 # ── Health check ──────────────────────────────────────────────────────────────
 @app.get("/health", response_model=HealthResponse, tags=["Health"])

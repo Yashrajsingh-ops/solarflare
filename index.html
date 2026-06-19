@@ -3,142 +3,17 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Solar Flare Project Preview</title>
+<title>Flare cast Landing</title>
+<meta http-equiv="refresh" content="0; url=./landing/index.html" />
 <style>
-  * { box-sizing: border-box; }
-  html, body { height: 100%; margin: 0; }
-  body {
-    font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    background: #050816;
-    color: #e5eefc;
-  }
-  .shell {
-    min-height: 100vh;
-    display: grid;
-    grid-template-rows: auto 1fr;
-  }
-  .bar {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 16px;
-    padding: 14px 20px;
-    border-bottom: 1px solid rgba(148, 163, 184, 0.18);
-    background: rgba(5, 8, 22, 0.88);
-    backdrop-filter: blur(16px);
-    position: sticky;
-    top: 0;
-    z-index: 10;
-  }
-  .title {
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
-  }
-  .title strong {
-    font-size: 14px;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-  }
-  .title span {
-    color: #94a3b8;
-    font-size: 12px;
-  }
-  .links {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-  }
-  .links a {
-    color: #e5eefc;
-    text-decoration: none;
-    font-size: 12px;
-    padding: 8px 12px;
-    border-radius: 999px;
-    border: 1px solid rgba(148, 163, 184, 0.2);
-    background: rgba(255, 255, 255, 0.03);
-  }
-  .links a:hover { background: rgba(255, 255, 255, 0.08); }
-  .grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
-    padding: 12px;
-    min-height: 0;
-  }
-  .pane {
-    min-height: calc(100vh - 86px);
-    border: 1px solid rgba(148, 163, 184, 0.18);
-    border-radius: 18px;
-    overflow: hidden;
-    background: #08111f;
-    box-shadow: 0 18px 60px rgba(0, 0, 0, 0.35);
-  }
-  .pane-head {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    padding: 10px 14px;
-    border-bottom: 1px solid rgba(148, 163, 184, 0.12);
-    background: rgba(255, 255, 255, 0.02);
-    font-size: 12px;
-    color: #94a3b8;
-  }
-  .pane-head strong {
-    color: #e5eefc;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-    font-size: 11px;
-  }
-  iframe {
+  html, body {
+    margin: 0;
     width: 100%;
-    height: calc(100% - 43px);
-    border: 0;
-    display: block;
-    background: #fff;
-  }
-  @media (max-width: 1100px) {
-    .grid { grid-template-columns: 1fr; }
-    .pane { min-height: 78vh; }
-  }
-  @media (max-width: 640px) {
-    .bar { align-items: flex-start; flex-direction: column; }
-    .pane { min-height: 72vh; }
+    height: 100%;
+    background: #050816;
   }
 </style>
 </head>
 <body>
-  <div class="shell">
-    <header class="bar">
-      <div class="title">
-        <strong>Solar Flare Project Preview</strong>
-        <span>Landing page and dashboard shown together</span>
-      </div>
-      <div class="links">
-        <a href="./landing/index.html" target="_blank" rel="noreferrer">Open Landing</a>
-        <a href="./frontend/index.html" target="_blank" rel="noreferrer">Open Dashboard</a>
-        <a href="http://127.0.0.1:8000/docs" target="_blank" rel="noreferrer">API Docs</a>
-      </div>
-    </header>
-
-    <main class="grid">
-      <section class="pane">
-        <div class="pane-head">
-          <strong>Landing</strong>
-          <span>Marketing / overview</span>
-        </div>
-        <iframe src="./landing/index.html" title="Landing page preview" loading="eager"></iframe>
-      </section>
-
-      <section class="pane">
-        <div class="pane-head">
-          <strong>Dashboard</strong>
-          <span>Live app / API-backed</span>
-        </div>
-        <iframe src="./frontend/index.html" title="Dashboard preview" loading="eager"></iframe>
-      </section>
-    </main>
-  </div>
 </body>
 </html>

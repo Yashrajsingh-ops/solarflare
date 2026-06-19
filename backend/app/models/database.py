@@ -1,13 +1,10 @@
-"""
-database.py — SQLAlchemy models and DB session setup.
-Uses SQLite by default; swap DATABASE_URL env var for PostgreSQL.
-"""
+"""database.py — SQLAlchemy models and DB session setup."""
 
 import os
 from datetime import datetime
 
-from sqlalchemy import Column, DateTime, Float, Integer, String, create_engine
-from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
+from sqlalchemy import Boolean, Column, DateTime, Float, ForeignKey, Integer, String, Text, create_engine
+from sqlalchemy.orm import DeclarativeBase, Session, relationship, sessionmaker
 
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./solar_flare.db")
 
@@ -46,6 +43,64 @@ class PredictionLog(Base):
     risk_level = Column(String(16), nullable=False)
     prediction = Column(String(64), nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
+
+    insight = relationship("PredictionInsight", back_populates="prediction_log", uselist=False)
+
+
+class PredictionInsight(Base):
+    """Explainability and impact metadata for a prediction log."""
+
+    __tablename__ = "prediction_insights"
+
+    id = Column(Integer, primary_key=True, index=True)
+    prediction_log_id = Column(Integer, ForeignKey("prediction_logs.id"), unique=True, nullable=False)
+    flare_class = Column(String(2), nullable=False)
+    model_name = Column(String(32), nullable=False, default="heuristic")
+    reasons_json = Column(Text, nullable=False)
+    impact_json = Column(Text, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    prediction_log = relationship("PredictionLog", back_populates="insight")
+
+
+class FlareEvent(Base):
+    """Historical flare event catalog used by the history and analytics views."""
+
+    __tablename__ = "flare_events"
+
+    id = Column(Integer, primary_key=True, index=True)
+    prediction_log_id = Column(Integer, ForeignKey("prediction_logs.id"), nullable=False, index=True)
+    flare_class = Column(String(2), nullable=False)
+    flare_probability = Column(Float, nullable=False)
+    risk_level = Column(String(16), nullable=False)
+    event_time = Column(DateTime, default=datetime.utcnow, index=True)
+    summary = Column(String(256), nullable=False)
+
+
+class AlertHistory(Base):
+    """Persisted alert records for the alert center and notification feed."""
+
+    __tablename__ = "alert_history"
+
+    id = Column(Integer, primary_key=True, index=True)
+    prediction_log_id = Column(Integer, ForeignKey("prediction_logs.id"), nullable=True, index=True)
+    alert_level = Column(String(16), nullable=False)
+    message = Column(String(256), nullable=False)
+    acknowledged = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+
+
+class UserActivity(Base):
+    """Very small audit trail for uploads and prediction requests."""
+
+    __tablename__ = "user_activity"
+
+    id = Column(Integer, primary_key=True, index=True)
+    action = Column(String(32), nullable=False)
+    entity_type = Column(String(32), nullable=False)
+    entity_id = Column(String(64), nullable=True)
+    details_json = Column(Text, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)
 
 
 def create_tables() -> None:

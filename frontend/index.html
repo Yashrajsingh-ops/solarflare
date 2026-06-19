@@ -75,6 +75,22 @@ canvas{width:100%!important}
 .ur.ok{background:rgba(34,197,94,.1);color:#86efac;border:1px solid #166534}
 .ur.err{background:var(--flare-dim);color:#fca5a5;border:1px solid #7f1d1d}
 .bottom-row{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.insights-row{display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:20px}
+.stack{display:flex;flex-direction:column;gap:12px}
+.mini-table{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:11px}
+.mini-table th{color:var(--lo);letter-spacing:1px;text-transform:uppercase;font-size:10px;padding:6px 10px;border-bottom:1px solid var(--border);text-align:left}
+.mini-table td{padding:8px 10px;border-bottom:1px solid var(--border);color:var(--mid-t)}
+.mini-table tr:last-child td{border-bottom:none}
+.mini-table tr:hover td{background:var(--card-hi)}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;font-family:var(--mono);font-size:10px;letter-spacing:1px;text-transform:uppercase;border:1px solid var(--border)}
+.chip.high{color:#fbbf24;border-color:rgba(245,158,11,.35);background:rgba(245,158,11,.08)}
+.chip.critical{color:#fca5a5;border-color:rgba(239,68,68,.35);background:rgba(239,68,68,.08)}
+.chip.medium{color:#c4b5fd;border-color:rgba(167,139,250,.35);background:rgba(167,139,250,.08)}
+.chip.low{color:#67e8f9;border-color:rgba(34,211,238,.35);background:rgba(34,211,238,.08)}
+.metric-list{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.metric-item{background:var(--bg);border:1px solid var(--border);border-radius:var(--r);padding:12px}
+.metric-item .k{font-family:var(--mono);font-size:10px;letter-spacing:1px;color:var(--lo);text-transform:uppercase}
+.metric-item .v{font-family:var(--mono);font-size:18px;color:var(--hi);margin-top:6px}
 .log-table{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:11px}
 .log-table th{color:var(--lo);letter-spacing:1px;text-transform:uppercase;font-size:10px;padding:6px 10px;border-bottom:1px solid var(--border);text-align:left}
 .log-table td{padding:8px 10px;border-bottom:1px solid var(--border);color:var(--mid-t)}
@@ -90,6 +106,7 @@ canvas{width:100%!important}
 @keyframes spin{to{transform:rotate(360deg)}}
 pre{font-family:var(--mono);font-size:10px;color:var(--lo);background:var(--bg);padding:12px;border-radius:var(--r);border:1px solid var(--border);overflow-x:auto}
 @media(max-width:1024px){.metrics{grid-template-columns:repeat(2,1fr)}.mid-row,.bottom-row{grid-template-columns:1fr}}
+@media(max-width:1024px){.insights-row{grid-template-columns:1fr}}
 @media(max-width:600px){.metrics{grid-template-columns:1fr 1fr}.main{padding:12px 14px}}
 </style>
 </head>
@@ -170,6 +187,46 @@ pre{font-family:var(--mono);font-size:10px;color:var(--lo);background:var(--bg);
       </div>
     </div>
   </div>
+  <div class="insights-row">
+    <div class="panel stack">
+      <div class="ph"><span class="pt">Prediction History</span><span class="ptag" id="history-count">0 records</span></div>
+      <table class="mini-table">
+        <thead><tr><th>Time</th><th>Class</th><th>Risk</th><th>Prob%</th></tr></thead>
+        <tbody id="history-body"><tr><td colspan="4" style="color:var(--lo);text-align:center;padding:20px">No history yet</td></tr></tbody>
+      </table>
+    </div>
+    <div class="panel stack">
+      <div class="ph"><span class="pt">Alert Center</span><span class="ptag">latest notifications</span></div>
+      <div id="alert-center" class="stack">
+        <div class="metric-item"><div class="k">Status</div><div class="v" id="alert-status">No alerts</div></div>
+        <div class="metric-item"><div class="k">Message</div><div class="v" id="alert-message" style="font-size:12px;line-height:1.4">Waiting for predictions</div></div>
+      </div>
+      <div style="margin-top:8px">
+        <table class="mini-table">
+          <thead><tr><th>Time</th><th>Level</th><th>Message</th></tr></thead>
+          <tbody id="alert-history-body"><tr><td colspan="3" style="color:var(--lo);text-align:center;padding:20px">No alert history</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="panel stack">
+      <div class="ph"><span class="pt">Analytics</span><span class="ptag">platform overview</span></div>
+      <div class="metric-list">
+        <div class="metric-item"><div class="k">Observations</div><div class="v" id="ana-observations">0</div></div>
+        <div class="metric-item"><div class="k">Predictions</div><div class="v" id="ana-predictions">0</div></div>
+        <div class="metric-item"><div class="k">Flare Events</div><div class="v" id="ana-events">0</div></div>
+        <div class="metric-item"><div class="k">Avg Probability</div><div class="v" id="ana-prob">0%</div></div>
+      </div>
+      <div class="metric-item">
+        <div class="k">Explainability</div>
+        <div class="v" id="explain-prediction" style="font-size:14px">No data yet</div>
+        <div id="explain-reasons" style="margin-top:10px;display:flex;flex-wrap:wrap;gap:8px"></div>
+      </div>
+      <div class="metric-item">
+        <div class="k">Impact</div>
+        <div id="impact-list" style="font-family:var(--mono);font-size:11px;color:var(--mid-t);line-height:1.6">No impact data yet</div>
+      </div>
+    </div>
+  </div>
 </main>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
@@ -233,6 +290,14 @@ async function fetchDashboard(){try{const r=await fetch(`${API}/api/dashboard`);
 async function fetchAlerts(){try{const r=await fetch(`${API}/api/alerts`);if(!r.ok)return;const d=await r.json();const b=document.getElementById('alert-banner');if(d.alert){b.classList.add('on');document.getElementById('alert-msg').textContent=d.message}else{b.classList.remove('on')}}catch(_){}}
 async function runPredict(){
   const s=parseFloat(document.getElementById('inp-soft').value),h=parseFloat(document.getElementById('inp-hard').value);
+async function fetchHistory(){try{const r=await fetch(`${API}/api/history?limit=12`);if(!r.ok)return;const d=await r.json();document.getElementById('history-count').textContent=d.items.length+' records';const tb=document.getElementById('history-body');if(!d.items.length){tb.innerHTML='<tr><td colspan="4" style="color:var(--lo);text-align:center;padding:20px">No history yet</td></tr>';return}tb.innerHTML=d.items.map(it=>`<tr><td>${new Date(it.created_at).toLocaleTimeString()}</td><td>${it.flare_class}</td><td style="color:${rc(it.risk_level)}">${it.risk_level}</td><td>${(+it.flare_probability).toFixed(1)}</td></tr>`).join('')}catch(_){}
+}
+async function fetchAlertHistory(){try{const r=await fetch(`${API}/api/alerts/history?limit=8`);if(!r.ok)return;const d=await r.json();const tb=document.getElementById('alert-history-body');if(!d.items.length){tb.innerHTML='<tr><td colspan="3" style="color:var(--lo);text-align:center;padding:20px">No alert history</td></tr>';return}tb.innerHTML=d.items.map(it=>`<tr><td>${new Date(it.created_at).toLocaleTimeString()}</td><td><span class="chip ${it.alert_level.toLowerCase()}">${it.alert_level}</span></td><td>${it.message}</td></tr>`).join('');const latest=d.items[0];document.getElementById('alert-status').textContent=latest.alert_level;document.getElementById('alert-message').textContent=latest.message}catch(_){}
+}
+async function fetchAnalytics(){try{const r=await fetch(`${API}/api/analytics`);if(!r.ok)return;const d=await r.json();document.getElementById('ana-observations').textContent=d.total_observations;document.getElementById('ana-predictions').textContent=d.total_predictions;document.getElementById('ana-events').textContent=d.total_flare_events;document.getElementById('ana-prob').textContent=d.average_probability.toFixed(1)+'%';document.getElementById('ana-observations').parentElement.title=JSON.stringify(d.flare_class_counts);document.getElementById('ana-predictions').parentElement.title=JSON.stringify(d.risk_counts)}catch(_){}
+}
+async function fetchExplain(){try{const r=await fetch(`${API}/api/explain`);if(!r.ok)return;const d=await r.json();document.getElementById('explain-prediction').textContent='Prediction: '+d.prediction;document.getElementById('explain-reasons').innerHTML=d.reasons.map(reason=>`<span class="chip medium">${reason}</span>`).join('');document.getElementById('impact-list').innerHTML=Array.isArray(d.impact.impacts)?d.impact.impacts.map(item=>`<div>• ${item}</div>`).join(''):`<div>${d.impact.severity || 'Unknown'}</div>`}catch(_){}
+}
   if(isNaN(s)||isNaN(h)||s<=0||h<=0){alert('Enter valid positive values for both flux readings.');return}
   const btn=document.getElementById('btn-p');btn.disabled=true;btn.innerHTML='<span class="spinner"></span> Running...';
   try{
@@ -244,6 +309,7 @@ async function runPredict(){
     document.getElementById('res-verdict').textContent=d.prediction;document.getElementById('result-grid').style.display='grid';
     const lbl=new Date().toLocaleTimeString('en',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
     chartPush(lbl,s,h);logPred(s,h,d.flare_probability,d.risk_level);
+    fetchHistory();fetchAlertHistory();fetchAnalytics();fetchExplain();
   }catch(e){alert('Prediction failed: '+e.message+'\n\nMake sure the FastAPI backend is running at '+API);}
   finally{btn.disabled=false;btn.textContent='Run Prediction'}
 }
@@ -274,7 +340,7 @@ function runDemo(){
   },2000);
 }
 (async()=>{
-  try{const r=await fetch(`${API}/health`,{signal:AbortSignal.timeout(2000)});if(r.ok){fetchDashboard();fetchAlerts();setInterval(fetchDashboard,10000);setInterval(fetchAlerts,10000);return}}catch(_){}
+  try{const r=await fetch(`${API}/health`,{signal:AbortSignal.timeout(2000)});if(r.ok){fetchDashboard();fetchAlerts();fetchHistory();fetchAlertHistory();fetchAnalytics();fetchExplain();setInterval(fetchDashboard,10000);setInterval(fetchAlerts,10000);setInterval(fetchHistory,15000);setInterval(fetchAlertHistory,15000);setInterval(fetchAnalytics,20000);setInterval(fetchExplain,20000);return}}catch(_){}
   runDemo();
 })();
 </script>

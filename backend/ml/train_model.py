@@ -1,17 +1,4 @@
-"""
-train_model.py — Train and persist the XGBoost flare classifier.
-
-Usage (from the backend/ directory):
-    python ml/train_model.py
-
-If real labelled data exists at data/training_data.csv the script uses it;
-otherwise it generates a synthetic dataset for demonstration purposes.
-
-Output
-------
-ml/xgboost_model.pkl
-ml/scaler.pkl
-"""
+"""Train and persist the solar flare classifiers."""
 
 import logging
 import os
@@ -21,6 +8,7 @@ from pathlib import Path
 import joblib
 import numpy as np
 import pandas as pd
+from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 from xgboost import XGBClassifier
@@ -35,6 +23,7 @@ logger = logging.getLogger(__name__)
 
 TRAINING_CSV = Path("data/training_data.csv")
 MODEL_OUT = Path("ml/xgboost_model.pkl")
+RF_MODEL_OUT = Path("ml/random_forest_model.pkl")
 SCALER_OUT = Path("ml/scaler.pkl")
 
 
@@ -103,6 +92,14 @@ def main() -> None:
     )
     model.fit(X_train, y_train, eval_set=[(X_test, y_test)], verbose=False)
 
+    rf_model = RandomForestClassifier(
+        n_estimators=250,
+        max_depth=8,
+        random_state=42,
+        n_jobs=-1,
+    )
+    rf_model.fit(X_train, y_train)
+
     from sklearn.metrics import classification_report, roc_auc_score
 
     y_pred = model.predict(X_test)
@@ -111,10 +108,15 @@ def main() -> None:
     logger.info("\n%s", classification_report(y_test, y_pred, target_names=["No Flare", "Flare"]))
     logger.info("ROC-AUC: %.4f", roc_auc_score(y_test, y_prob))
 
+    rf_prob = rf_model.predict_proba(X_test)[:, 1]
+    logger.info("RandomForest ROC-AUC: %.4f", roc_auc_score(y_test, rf_prob))
+
     MODEL_OUT.parent.mkdir(parents=True, exist_ok=True)
     joblib.dump(model, MODEL_OUT)
+    joblib.dump(rf_model, RF_MODEL_OUT)
     joblib.dump(scaler, SCALER_OUT)
     logger.info("Model saved → %s", MODEL_OUT)
+    logger.info("RandomForest saved → %s", RF_MODEL_OUT)
     logger.info("Scaler saved → %s", SCALER_OUT)
 
 

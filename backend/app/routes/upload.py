@@ -7,7 +7,7 @@ import logging
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from sqlalchemy.orm import Session
 
-from app.models.database import SolarObservation, get_db
+from app.models.database import SolarObservation, UserActivity, get_db
 from app.schemas.schemas import UploadResponse
 from app.services.preprocessing import parse_and_validate_csv
 
@@ -46,6 +46,14 @@ async def upload_dataset(
     ]
 
     db.bulk_save_objects(rows)
+    db.add(
+        UserActivity(
+            action="upload",
+            entity_type="dataset",
+            entity_id=file.filename,
+            details_json=f'{{"rows_ingested": {len(rows)}}}',
+        )
+    )
     db.commit()
 
     logger.info("Ingested %d observations from '%s'", len(rows), file.filename)

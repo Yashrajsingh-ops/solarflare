@@ -1,14 +1,13 @@
-"""
-prediction.py — Real-time solar flare prediction endpoint.
-"""
+"""Real-time solar flare prediction endpoint."""
 
 import logging
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from app.models.database import PredictionLog, get_db
+from app.models.database import PredictionLog, UserActivity, get_db
 from app.schemas.schemas import PredictRequest, PredictResponse
+from app.services.history_service import persist_prediction_artifacts
 from app.services.prediction_service import predict
 
 router = APIRouter(prefix="/api", tags=["Prediction"])
@@ -41,6 +40,21 @@ def predict_flare(
         prediction=result["prediction"],
     )
     db.add(log)
+    db.add(
+        UserActivity(
+            action="predict",
+            entity_type="prediction",
+            entity_id=str(log.id),
+            details_json=(
+                f'{{"flare_probability": {result["flare_probability"]}, '
+                f'"risk_level": "{result["risk_level"]}", "flare_class": "{result["flare_class"]}"}}'
+            ),
+        )
+    )
+    db.commit()
+    db.refresh(log)
+
+    persist_prediction_artifacts(db, log, result)
     db.commit()
 
     return PredictResponse(**result)
