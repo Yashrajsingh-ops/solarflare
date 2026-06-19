@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Aditya-L1 | Solar Flare Monitor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#04060d;--panel:#080d18;--card:#0c1424;--card-hi:#101c32;
+  --border:#1a2a44;--border-hi:#1e3a60;
+  --solar:#f59e0b;--solar-dim:#92400e;--solar-glow:rgba(245,158,11,0.15);
+  --flare:#ef4444;--flare-dim:rgba(239,68,68,0.15);
+  --safe:#22d3ee;--safe-dim:rgba(34,211,238,0.12);
+  --mid:#a78bfa;
+  --hi:#f0f6ff;--mid-t:#94a3b8;--lo:#4a5a74;
+  --mono:'Space Mono',monospace;--sans:'Inter',sans-serif;
+  --r:6px;--rp:10px;
+}
+html,body{height:100%;background:var(--bg);color:var(--hi);font-family:var(--sans)}
+.app{display:grid;grid-template-rows:56px 1fr;min-height:100vh}
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:0 24px;background:var(--panel);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100}
+.brand{display:flex;align-items:center;gap:10px}
+.sun{width:28px;height:28px;background:radial-gradient(circle,#fef3c7 0%,var(--solar) 40%,var(--solar-dim) 100%);border-radius:50%;box-shadow:0 0 12px var(--solar),0 0 24px rgba(245,158,11,.3);animation:pulse 3s ease-in-out infinite}
+@keyframes pulse{0%,100%{box-shadow:0 0 12px var(--solar),0 0 24px rgba(245,158,11,.3)}50%{box-shadow:0 0 20px var(--solar),0 0 44px rgba(245,158,11,.5)}}
+.brand h1{font-family:var(--mono);font-size:13px;font-weight:700;color:var(--solar);letter-spacing:2px;text-transform:uppercase}
+.brand span{font-family:var(--mono);font-size:11px;color:var(--lo);letter-spacing:1px}
+.topbar-right{display:flex;align-items:center;gap:20px}
+#clock{font-family:var(--mono);font-size:11px;color:var(--mid-t)}
+.live{display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:11px;color:var(--mid-t)}
+.dot{width:8px;height:8px;border-radius:50%;background:#22c55e;animation:blink 2s ease infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+.main{padding:20px 24px;display:flex;flex-direction:column;gap:20px;max-width:1400px;margin:0 auto;width:100%}
+.alert{display:none;padding:12px 20px;background:var(--flare-dim);border:1px solid var(--flare);border-radius:var(--r);color:#fca5a5;font-family:var(--mono);font-size:12px;gap:10px;align-items:center;animation:flash 1.5s ease infinite}
+.alert.on{display:flex}
+@keyframes flash{0%,100%{border-color:var(--flare)}50%{border-color:transparent}}
+.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+.mc{background:var(--card);border:1px solid var(--border);border-radius:var(--rp);padding:20px;position:relative;overflow:hidden;transition:border-color .2s}
+.mc::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--accent,var(--border))}
+.mc:hover{border-color:var(--border-hi);background:var(--card-hi)}
+.mc .lbl{font-family:var(--mono);font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--lo);margin-bottom:12px}
+.mc .val{font-family:var(--mono);font-size:32px;font-weight:700;color:var(--hi);line-height:1}
+.mc .unit{font-family:var(--mono);font-size:11px;color:var(--mid-t);margin-top:4px}
+.badge{display:inline-block;padding:3px 10px;border-radius:20px;font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:1px;margin-top:8px}
+.mid-row{display:grid;grid-template-columns:1fr 360px;gap:20px}
+.panel{background:var(--card);border:1px solid var(--border);border-radius:var(--rp);padding:20px}
+.ph{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.pt{font-family:var(--mono);font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--mid-t)}
+.ptag{font-family:var(--mono);font-size:10px;color:var(--lo)}
+canvas{width:100%!important}
+.predict-panel{display:flex;flex-direction:column;gap:14px}
+.field{display:flex;flex-direction:column;gap:6px}
+.field label{font-family:var(--mono);font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--lo)}
+.field input{background:var(--bg);border:1px solid var(--border);border-radius:var(--r);color:var(--hi);font-family:var(--mono);font-size:14px;padding:10px 14px;outline:none;transition:border-color .2s}
+.field input:focus{border-color:var(--solar)}
+.btn-p{width:100%;padding:12px;background:var(--solar);color:#000;border:none;border-radius:var(--r);font-family:var(--mono);font-size:12px;font-weight:700;letter-spacing:2px;text-transform:uppercase;cursor:pointer;transition:all .2s}
+.btn-p:hover{background:#fbbf24;box-shadow:0 0 20px rgba(245,158,11,.4)}
+.btn-p:active{transform:scale(.98)}
+.btn-p:disabled{opacity:.5;cursor:not-allowed}
+.gw{position:relative;width:160px;height:84px;margin:0 auto}
+.gv{position:absolute;bottom:0;left:50%;transform:translateX(-50%);font-family:var(--mono);font-size:20px;font-weight:700;color:var(--hi);text-align:center}
+.gv span{display:block;font-size:10px;color:var(--lo);letter-spacing:1px}
+.rg{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.ri{background:var(--bg);border:1px solid var(--border);border-radius:var(--r);padding:10px 12px}
+.ri .rl{font-family:var(--mono);font-size:10px;color:var(--lo);letter-spacing:1px;margin-bottom:4px}
+.ri .rv{font-family:var(--mono);font-size:13px;color:var(--hi)}
+.upload-area{border:2px dashed var(--border);border-radius:var(--rp);padding:28px;text-align:center;cursor:pointer;transition:all .2s;background:var(--panel)}
+.upload-area:hover,.upload-area.drag{border-color:var(--solar);background:var(--solar-glow)}
+.upload-area p{font-size:13px;color:var(--mid-t)}
+.upload-area small{font-family:var(--mono);font-size:10px;color:var(--lo);letter-spacing:1px}
+#file-input{display:none}
+.ur{font-family:var(--mono);font-size:11px;margin-top:10px;padding:8px 12px;border-radius:var(--r)}
+.ur.ok{background:rgba(34,197,94,.1);color:#86efac;border:1px solid #166534}
+.ur.err{background:var(--flare-dim);color:#fca5a5;border:1px solid #7f1d1d}
+.bottom-row{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.log-table{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:11px}
+.log-table th{color:var(--lo);letter-spacing:1px;text-transform:uppercase;font-size:10px;padding:6px 10px;border-bottom:1px solid var(--border);text-align:left}
+.log-table td{padding:8px 10px;border-bottom:1px solid var(--border);color:var(--mid-t)}
+.log-table tr:last-child td{border-bottom:none}
+.log-table tr:hover td{background:var(--card-hi)}
+.risk-legend{display:flex;flex-direction:column;gap:12px}
+.risk-row{display:flex;align-items:center;gap:14px}
+.rb-wrap{flex:1;height:6px;background:var(--bg);border-radius:3px;overflow:hidden}
+.rb{height:100%;border-radius:3px}
+.rl-lbl{font-family:var(--mono);font-size:10px;letter-spacing:1px;width:64px}
+.rl-range{font-family:var(--mono);font-size:10px;color:var(--lo);width:56px;text-align:right}
+.spinner{display:inline-block;width:14px;height:14px;border:2px solid transparent;border-top-color:currentColor;border-radius:50%;animation:spin .6s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+pre{font-family:var(--mono);font-size:10px;color:var(--lo);background:var(--bg);padding:12px;border-radius:var(--r);border:1px solid var(--border);overflow-x:auto}
+@media(max-width:1024px){.metrics{grid-template-columns:repeat(2,1fr)}.mid-row,.bottom-row{grid-template-columns:1fr}}
+@media(max-width:600px){.metrics{grid-template-columns:1fr 1fr}.main{padding:12px 14px}}
+</style>
+</head>
+<body>
+<div class="app">
+<header class="topbar">
+  <div class="brand">
+    <div class="sun"></div>
+    <div><h1>Aditya-L1</h1><span>SOLEXS · HEL1OS · FLARE MONITOR</span></div>
+  </div>
+  <div class="topbar-right">
+    <span id="clock"></span>
+    <div class="live"><div class="dot"></div>LIVE</div>
+  </div>
+</header>
+<main class="main">
+  <div class="alert" id="alert-banner">
+    <span style="font-size:16px">⚡</span>
+    <span id="alert-msg">Alert</span>
+  </div>
+  <div class="metrics">
+    <div class="mc" style="--accent:var(--solar)"><div class="lbl">Soft X-Ray Flux</div><div class="val" id="m-soft">—</div><div class="unit">SOLEXS · W/m²×10⁻⁶</div></div>
+    <div class="mc" style="--accent:var(--safe)"><div class="lbl">Hard X-Ray Flux</div><div class="val" id="m-hard">—</div><div class="unit">HEL1OS · counts/s</div></div>
+    <div class="mc" style="--accent:var(--mid)"><div class="lbl">Flare Probability</div><div class="val" id="m-prob">—</div><div class="unit">% likelihood</div></div>
+    <div class="mc" style="--accent:var(--flare)"><div class="lbl">Risk Level</div><div class="val" id="m-risk" style="font-size:20px;margin-top:8px">—</div><div class="badge" id="m-badge">LOADING</div></div>
+  </div>
+  <div class="mid-row">
+    <div class="panel">
+      <div class="ph"><span class="pt">X-Ray Flux — History</span><span class="ptag">last 20 readings</span></div>
+      <canvas id="flux-chart" height="220"></canvas>
+    </div>
+    <div class="panel predict-panel">
+      <div class="ph"><span class="pt">Manual Predict</span></div>
+      <div class="gw">
+        <canvas id="gauge" width="160" height="84"></canvas>
+        <div class="gv"><span id="gauge-pct">—</span><span>PROBABILITY</span></div>
+      </div>
+      <div class="field"><label>Soft X-Ray Flux (SOLEXS)</label><input type="number" id="inp-soft" placeholder="e.g. 70" min="0" step="0.1"></div>
+      <div class="field"><label>Hard X-Ray Flux (HEL1OS)</label><input type="number" id="inp-hard" placeholder="e.g. 35" min="0" step="0.1"></div>
+      <button class="btn-p" id="btn-p" onclick="runPredict()">Run Prediction</button>
+      <div class="rg" id="result-grid" style="display:none">
+        <div class="ri"><div class="rl">RISK</div><div class="rv" id="res-risk">—</div></div>
+        <div class="ri"><div class="rl">VERDICT</div><div class="rv" id="res-verdict" style="font-size:10px">—</div></div>
+      </div>
+    </div>
+  </div>
+  <div class="bottom-row">
+    <div class="panel">
+      <div class="ph"><span class="pt">Upload Dataset</span></div>
+      <div class="upload-area" id="drop-zone" onclick="document.getElementById('file-input').click()" ondragover="event.preventDefault();this.classList.add('drag')" ondragleave="this.classList.remove('drag')" ondrop="handleDrop(event)">
+        <div style="font-size:28px;margin-bottom:8px">☀️</div>
+        <p>Drop SOLEXS / HEL1OS CSV here</p>
+        <small>or click to browse</small>
+      </div>
+      <input type="file" id="file-input" accept=".csv" onchange="handleFile(this.files[0])">
+      <div id="upload-result"></div>
+      <div style="margin-top:14px"><div class="pt" style="margin-bottom:10px">Required Format</div>
+      <pre>timestamp,soft_xray_flux,hard_xray_flux
+2025-01-01 10:00:00,23.5,4.2
+2025-01-01 10:01:00,24.1,4.8</pre></div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:16px">
+      <div class="panel" style="flex:1">
+        <div class="ph"><span class="pt">Recent Predictions</span><span class="ptag" id="log-count">0 records</span></div>
+        <table class="log-table">
+          <thead><tr><th>Time</th><th>Soft</th><th>Hard</th><th>Prob%</th><th>Risk</th></tr></thead>
+          <tbody id="log-body"><tr><td colspan="5" style="color:var(--lo);text-align:center;padding:20px">No predictions yet</td></tr></tbody>
+        </table>
+      </div>
+      <div class="panel">
+        <div class="ph"><span class="pt">Risk Classification</span></div>
+        <div class="risk-legend">
+          <div class="risk-row"><div class="rl-lbl" style="color:#22d3ee">LOW</div><div class="rb-wrap"><div class="rb" style="width:25%;background:#22d3ee"></div></div><div class="rl-range">0–25%</div></div>
+          <div class="risk-row"><div class="rl-lbl" style="color:#a78bfa">MEDIUM</div><div class="rb-wrap"><div class="rb" style="width:50%;background:#a78bfa"></div></div><div class="rl-range">25–50%</div></div>
+          <div class="risk-row"><div class="rl-lbl" style="color:var(--solar)">HIGH</div><div class="rb-wrap"><div class="rb" style="width:75%;background:var(--solar)"></div></div><div class="rl-range">50–75%</div></div>
+          <div class="risk-row"><div class="rl-lbl" style="color:#ef4444">CRITICAL</div><div class="rb-wrap"><div class="rb" style="width:100%;background:#ef4444"></div></div><div class="rl-range">75–100%</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+const API='http://localhost:8000';
+const RC={LOW:'#22d3ee',MEDIUM:'#a78bfa',HIGH:'#f59e0b',CRITICAL:'#ef4444'};
+const RB={LOW:'rgba(34,211,238,.15)',MEDIUM:'rgba(167,139,250,.15)',HIGH:'rgba(245,158,11,.15)',CRITICAL:'rgba(239,68,68,.15)'};
+function rc(r){return RC[r]||'#94a3b8'}
+function tick(){const n=new Date();document.getElementById('clock').textContent=n.toUTCString().replace('GMT','UTC').replace(/^\w+,\s/,'')}
+tick();setInterval(tick,1000);
+function drawGauge(pct,color){
+  const c=document.getElementById('gauge'),ctx=c.getContext('2d');
+  const W=160,cy=78,r=60;
+  ctx.clearRect(0,0,W,84);
+  ctx.beginPath();ctx.arc(80,cy,r,Math.PI,0);ctx.lineWidth=10;ctx.strokeStyle='#1a2a44';ctx.lineCap='round';ctx.stroke();
+  if(pct>0){
+    const a=Math.PI+(pct/100)*Math.PI;
+    ctx.beginPath();ctx.arc(80,cy,r,Math.PI,a);ctx.strokeStyle=color;ctx.shadowColor=color;ctx.shadowBlur=10;ctx.stroke();ctx.shadowBlur=0;
+  }
+  document.getElementById('gauge-pct').textContent=pct!==null?pct.toFixed(1)+'%':'—';
+}
+drawGauge(0,'#1a2a44');
+const chartCtx=document.getElementById('flux-chart').getContext('2d');
+const fluxChart=new Chart(chartCtx,{
+  type:'line',
+  data:{labels:[],datasets:[
+    {label:'Soft X-Ray',data:[],borderColor:'#f59e0b',backgroundColor:'rgba(245,158,11,.05)',borderWidth:2,pointRadius:3,pointBackgroundColor:'#f59e0b',tension:.4,fill:true},
+    {label:'Hard X-Ray',data:[],borderColor:'#22d3ee',backgroundColor:'rgba(34,211,238,.05)',borderWidth:2,pointRadius:3,pointBackgroundColor:'#22d3ee',tension:.4,fill:true}
+  ]},
+  options:{responsive:true,maintainAspectRatio:false,animation:{duration:400},
+    plugins:{legend:{labels:{color:'#94a3b8',font:{family:'Space Mono',size:10},boxWidth:12}},
+      tooltip:{backgroundColor:'#0c1424',borderColor:'#1a2a44',borderWidth:1,titleColor:'#f0f6ff',bodyColor:'#94a3b8',titleFont:{family:'Space Mono',size:10},bodyFont:{family:'Space Mono',size:10}}},
+    scales:{x:{ticks:{color:'#4a5a74',font:{family:'Space Mono',size:9},maxRotation:0},grid:{color:'#0c1424'}},
+      y:{ticks:{color:'#4a5a74',font:{family:'Space Mono',size:9}},grid:{color:'#1a2a44'}}}}
+});
+const MAX=20,preds=[];
+function chartPush(lbl,s,h){
+  const d=fluxChart.data;d.labels.push(lbl);d.datasets[0].data.push(s);d.datasets[1].data.push(h);
+  if(d.labels.length>MAX){d.labels.shift();d.datasets[0].data.shift();d.datasets[1].data.shift()}
+  fluxChart.update();
+}
+function logPred(s,h,p,r){
+  preds.unshift({time:new Date().toLocaleTimeString(),soft:s,hard:h,prob:p,risk:r});
+  if(preds.length>50)preds.pop();renderLog();
+}
+function renderLog(){
+  document.getElementById('log-count').textContent=preds.length+' records';
+  const tb=document.getElementById('log-body');
+  if(!preds.length){tb.innerHTML='<tr><td colspan="5" style="color:var(--lo);text-align:center;padding:20px">No predictions yet</td></tr>';return}
+  tb.innerHTML=preds.slice(0,10).map(p=>`<tr><td>${p.time}</td><td>${(+p.soft).toFixed(1)}</td><td>${(+p.hard).toFixed(1)}</td><td style="color:${rc(p.risk)}">${p.prob.toFixed(1)}</td><td style="color:${rc(p.risk)}">${p.risk}</td></tr>`).join('');
+}
+function updateMetrics(s,h,p,r){
+  document.getElementById('m-soft').textContent=(+s).toFixed(1);
+  document.getElementById('m-hard').textContent=(+h).toFixed(1);
+  document.getElementById('m-prob').textContent=(+p).toFixed(1);
+  document.getElementById('m-risk').textContent=r;
+  const b=document.getElementById('m-badge');b.textContent=r;b.style.background=RB[r]||'transparent';b.style.color=rc(r);b.style.border=`1px solid ${rc(r)}`;
+  drawGauge(p,rc(r));
+}
+async function fetchDashboard(){try{const r=await fetch(`${API}/api/dashboard`);if(!r.ok)return;const d=await r.json();updateMetrics(d.latest_soft_flux,d.latest_hard_flux,d.flare_probability,d.risk_level)}catch(_){}}
+async function fetchAlerts(){try{const r=await fetch(`${API}/api/alerts`);if(!r.ok)return;const d=await r.json();const b=document.getElementById('alert-banner');if(d.alert){b.classList.add('on');document.getElementById('alert-msg').textContent=d.message}else{b.classList.remove('on')}}catch(_){}}
+async function runPredict(){
+  const s=parseFloat(document.getElementById('inp-soft').value),h=parseFloat(document.getElementById('inp-hard').value);
+  if(isNaN(s)||isNaN(h)||s<=0||h<=0){alert('Enter valid positive values for both flux readings.');return}
+  const btn=document.getElementById('btn-p');btn.disabled=true;btn.innerHTML='<span class="spinner"></span> Running...';
+  try{
+    const r=await fetch(`${API}/api/predict`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({soft_xray_flux:s,hard_xray_flux:h})});
+    if(!r.ok)throw new Error(`HTTP ${r.status}`);
+    const d=await r.json();
+    updateMetrics(s,h,d.flare_probability,d.risk_level);
+    document.getElementById('res-risk').textContent=d.risk_level;document.getElementById('res-risk').style.color=rc(d.risk_level);
+    document.getElementById('res-verdict').textContent=d.prediction;document.getElementById('result-grid').style.display='grid';
+    const lbl=new Date().toLocaleTimeString('en',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+    chartPush(lbl,s,h);logPred(s,h,d.flare_probability,d.risk_level);
+  }catch(e){alert('Prediction failed: '+e.message+'\n\nMake sure the FastAPI backend is running at '+API);}
+  finally{btn.disabled=false;btn.textContent='Run Prediction'}
+}
+function handleDrop(e){e.preventDefault();document.getElementById('drop-zone').classList.remove('drag');const f=e.dataTransfer.files[0];if(f)handleFile(f)}
+async function handleFile(file){
+  if(!file||!file.name.endsWith('.csv')){showUR('Only .csv files are accepted.',false);return}
+  showUR('<span class="spinner"></span> Uploading…',null);
+  const form=new FormData();form.append('file',file);
+  try{const r=await fetch(`${API}/api/upload`,{method:'POST',body:form});const d=await r.json();
+    if(r.ok){showUR(`✓ ${d.message} — ${d.rows_ingested} rows ingested`,true);fetchDashboard()}
+    else showUR('✗ '+(d.detail||'Upload failed'),false);
+  }catch(e){showUR('✗ Could not reach API: '+e.message,false)}
+}
+function showUR(msg,ok){const el=document.getElementById('upload-result');el.innerHTML=msg;el.className='ur '+(ok===true?'ok':ok===false?'err':'');el.style.display='block'}
+function runDemo(){
+  let t=0;
+  setInterval(()=>{
+    t++;
+    const s=20+50*Math.abs(Math.sin(t*.3))+Math.random()*5;
+    const h=5+25*Math.abs(Math.sin(t*.3-.5))+Math.random()*2;
+    const p=Math.min(100,(s+h*2)/1.2);
+    const r=p<25?'LOW':p<50?'MEDIUM':p<75?'HIGH':'CRITICAL';
+    const lbl=new Date().toLocaleTimeString('en',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+    updateMetrics(s.toFixed(1),h.toFixed(1),p,r);chartPush(lbl,+s.toFixed(1),+h.toFixed(1));logPred(s,h,p,r);
+    const b=document.getElementById('alert-banner');
+    if(p>=50){b.classList.add('on');document.getElementById('alert-msg').textContent=`High probability solar flare detected — ${p.toFixed(1)}% [${r}]`}
+    else b.classList.remove('on');
+  },2000);
+}
+(async()=>{
+  try{const r=await fetch(`${API}/health`,{signal:AbortSignal.timeout(2000)});if(r.ok){fetchDashboard();fetchAlerts();setInterval(fetchDashboard,10000);setInterval(fetchAlerts,10000);return}}catch(_){}
+  runDemo();
+})();
+</script>
+</body>
+</html>
