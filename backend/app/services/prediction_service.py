@@ -1,4 +1,20 @@
-"""Prediction, explainability, and flare-class utilities."""
+"""
+Prediction, explainability, and flare-class utilities.
+
+Configuration Notes:
+--------------------
+This service is configured to PRIORITIZE FLARE RECALL for space weather early warning.
+
+Risk Level Thresholds (adjusted for high-recall operation):
+- The thresholds are set lower than traditional 25/50/75% splits
+- This ensures earlier warnings at the cost of more false alarms
+- For space weather, missing a flare is more dangerous than a false alert
+
+Threshold Philosophy:
+- 30% probability triggers HIGH risk (vs traditional 50%)
+- This aligns with the 0.3 classification threshold used in model training
+- Operators receive earlier warnings to protect critical infrastructure
+"""
 
 import json
 import logging
@@ -14,6 +30,11 @@ logger = logging.getLogger(__name__)
 MODEL_PATH = Path("ml/xgboost_model.pkl")
 RF_MODEL_PATH = Path("ml/random_forest_model.pkl")
 SCALER_PATH = Path("ml/scaler.pkl")
+
+# Flare detection threshold: 0.3 (30%) instead of 0.5 (50%)
+# Lower threshold prioritizes recall for space weather early warning
+# Missing a flare (false negative) is more dangerous than a false alarm
+FLARE_PROBABILITY_THRESHOLD = 30.0  # percentage
 
 _model = None
 _scaler = None
@@ -56,24 +77,47 @@ def _heuristic_probability(soft: float, hard: float) -> float:
 
 
 def _categorise(prob_pct: float) -> tuple[str, str]:
-    if prob_pct < 25:
+    """
+    Categorize flare probability into risk levels.
+
+    Thresholds are set for HIGH-RECALL early warning operation:
+    - LOW: < 15% (very unlikely, minimal concern)
+    - MEDIUM: 15-30% (possible, monitor closely)
+    - HIGH: 30-60% (likely, prepare countermeasures) ← Alert threshold
+    - CRITICAL: >= 60% (imminent, take immediate action)
+
+    Note: Traditional thresholds are 25/50/75%. We use 15/30/60% to trigger
+    alerts earlier, prioritizing recall for space weather safety.
+    """
+    if prob_pct < 15:
         return "LOW", "Solar Flare Unlikely"
-    if prob_pct < 50:
+    if prob_pct < FLARE_PROBABILITY_THRESHOLD:  # 30%
         return "MEDIUM", "Solar Flare Possible"
-    if prob_pct < 75:
+    if prob_pct < 60:
         return "HIGH", "Solar Flare Likely"
     return "CRITICAL", "Solar Flare Imminent"
 
 
-def classify_flare(soft_xray_flux: float, hard_xray_flux: float, flare_probability: float) -> str:
-    """Map the current state to a flare class label."""
-    if flare_probability >= 90 or (soft_xray_flux >= 120 and hard_xray_flux >= 60):
+def classify_flare(soft_xray_flux: float) -> str:
+    """
+    Classify flare based on GOES soft X-ray flux thresholds (W/m²).
+
+    GOES Physical Class Thresholds:
+    - A: soft_xray_flux < 1e-7
+    - B: 1e-7 <= soft_xray_flux < 1e-6
+    - C: 1e-6 <= soft_xray_flux < 1e-5
+    - M: 1e-5 <= soft_xray_flux < 1e-4
+    - X: soft_xray_flux >= 1e-4
+
+    Note: Risk level is derived separately from model probability.
+    """
+    if soft_xray_flux >= 1e-4:
         return "X"
-    if flare_probability >= 75 or soft_xray_flux >= 90 or hard_xray_flux >= 45:
+    if soft_xray_flux >= 1e-5:
         return "M"
-    if flare_probability >= 50 or soft_xray_flux >= 60 or hard_xray_flux >= 30:
+    if soft_xray_flux >= 1e-6:
         return "C"
-    if flare_probability >= 25 or soft_xray_flux >= 30 or hard_xray_flux >= 12:
+    if soft_xray_flux >= 1e-7:
         return "B"
     return "A"
 
@@ -91,7 +135,8 @@ def explain_prediction(features: dict, flare_probability: float) -> list[str]:
         reasons.append("Hard X-ray Spike Detected")
     if ratio >= 2.0:
         reasons.append("Soft/Hard Flux Ratio Elevated")
-    if flare_probability >= 50:
+    # Use the configured threshold (30%) for pattern matching explanation
+    if flare_probability >= FLARE_PROBABILITY_THRESHOLD:
         reasons.append("Similar Historical Pattern Found")
 
     if not reasons:
@@ -151,7 +196,7 @@ def predict(soft_xray_flux: float, hard_xray_flux: float) -> dict:
 
     prob_pct = round(prob * 100, 1)
     risk_level, prediction = _categorise(prob_pct)
-    flare_class = classify_flare(soft_xray_flux, hard_xray_flux, prob_pct)
+    flare_class = classify_flare(soft_xray_flux)
     reasons = explain_prediction(features, prob_pct)
     impact = assess_impact(flare_class, risk_level, prob_pct)
 
